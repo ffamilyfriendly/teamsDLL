@@ -4,9 +4,6 @@
 #include "../lib/json.hpp"
 using json = nlohmann::json;
 
-/*
-get access token.
-*/
 CURL *curl = curl_easy_init();
 struct curl_slist *list = NULL;
 
@@ -75,11 +72,9 @@ void teams::client::login(std::string id, std::string secret) {
     }
 }
 
-std::map<std::string,teams::team> teams::client::getTeams() {
+std::string teams::client::generic_get(std::string partial_path) {
+    std::string url = this->url + partial_path;
     std::string auth_header = "Authorization: Bearer " + this->token;
-    //right now it's required to use the beta api to use the filter function
-    std::string url = this->url + "groups?$filter=resourceProvisioningOptions/Any(x%3Ax%20eq%20'Team')";
-    curl_mime_init(curl);
 
     // HEADERS
     list = curl_slist_append(list,auth_header.c_str());
@@ -90,15 +85,16 @@ std::map<std::string,teams::team> teams::client::getTeams() {
     std::string return_data;
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &return_data);
-    
-    //make request
     curl_easy_perform(curl); 
-    auto js = json::parse(return_data);
+    return return_data;
+}
+
+std::map<std::string,teams::team> teams::client::getTeams() {    
+    auto js = json::parse(this->generic_get("groups?$filter=resourceProvisioningOptions/Any(x%3Ax%20eq%20'Team')"));
 
     //initialize array
     std::map<std::string,teams::team> teams_list;
     teams::team return_array[js["value"].size()-1];
-
     for(int i = 0; i < js["value"].size()-1; i++) {
         teams::team t;
         t.createdDateTime = js["value"][i]["createdDateTime"];
