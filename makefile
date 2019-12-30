@@ -1,6 +1,7 @@
 NAME = teams
 ifndef OS
-    $(error Specify OS=[win32|linux])
+    $(info Specify OS=[win32|linux]. defaults to linux)
+	OS = linux
 endif
 
 ifeq (${OS}, win32)
