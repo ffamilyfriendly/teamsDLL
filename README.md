@@ -26,6 +26,7 @@
 - displayName
 - email
 - membershipType
+- *parent
 #### functions
 - none
 

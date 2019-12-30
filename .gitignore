@@ -1,3 +1,3 @@
-test/main.cpp
 test/test
 libteams.so
+test/config.json

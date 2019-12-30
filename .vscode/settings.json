@@ -61,6 +61,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "forward_list": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "codecvt": "cpp"
     }
 }
