@@ -1,3 +1,2 @@
 # example project (c++)
-this example project will get all teams and list them.
-remove the "example_" part before compiling
+add your credentials to the example_config.json file and remove the exaple_ part before running.

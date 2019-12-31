@@ -9,11 +9,16 @@ using json = nlohmann::json;
 namespace teams {
 
 //this class contains functions and props used by all classes
+struct generic_returnType {
+    std::string data;
+    long http_code;
+};
+
 class common {
 public:
     //funcs
-    std::string generic_get(std::string partial_path);
-    std::string generic_post(std::string partial_path,curl_mime *m);
+    generic_returnType generic_get(std::string partial_path);
+    generic_returnType generic_post(std::string partial_path,std::string body = "{}");
     //props
     std::string url = "https://graph.microsoft.com/beta/";
 

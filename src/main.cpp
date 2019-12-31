@@ -42,7 +42,7 @@ teams::team::channel genChannel(json js,teams::team *parent) {
 //ENDOF NON CLASS-BOUND FUNCTIONS
 
 // COMMON CLASS FUNCTIONS
-std::string teams::common::generic_get(std::string partial_path) {
+teams::generic_returnType teams::common::generic_get(std::string partial_path) {
     CURL *handle = curl_easy_duphandle(curl);
     std::string url = this->url + partial_path;
     curl_easy_setopt(handle,CURLOPT_URL,url.c_str());
@@ -51,21 +51,34 @@ std::string teams::common::generic_get(std::string partial_path) {
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, &return_data);
     curl_easy_perform(handle); 
+    teams::generic_returnType returnThis;
+    returnThis.data = return_data;
+    long http_code = 0;
+    curl_easy_getinfo(handle,CURLINFO_RESPONSE_CODE,&http_code);
+    returnThis.http_code = http_code;
     curl_easy_cleanup(handle);
-    return return_data;
+    return returnThis;
 }
 
-std::string teams::common::generic_post(std::string partial_path,curl_mime *m) {
+teams::generic_returnType teams::common::generic_post(std::string partial_path,std::string body) {
     std::string url = this->url + partial_path;
-    curl_easy_setopt(curl,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(curl, CURLOPT_MIMEPOST,m);
+    CURL *handle = curl_easy_duphandle(curl);
+    curl_easy_setopt(handle,CURLOPT_URL,url.c_str());
+    curl_easy_setopt(handle,CURLOPT_CUSTOMREQUEST,"POST");
+    curl_easy_setopt(handle,CURLOPT_POSTFIELDS,body);
 
     //data
     std::string return_data;
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &return_data);
-    curl_easy_perform(curl); 
-    return return_data;
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &return_data);
+    curl_easy_perform(handle); 
+    teams::generic_returnType returnThis;
+    returnThis.data = return_data;
+    long http_code = 0;
+    curl_easy_getinfo(handle,CURLINFO_RESPONSE_CODE,&http_code);
+    returnThis.http_code = http_code;
+    curl_easy_cleanup(handle);
+    return returnThis;
 }
 // ENDOF COMMON CLASS FUNCTIONS
 
@@ -125,8 +138,10 @@ void teams::client::login(std::string id, std::string secret) {
     }
 }
 
-std::map<std::string,teams::team> teams::client::getTeams() {    
-    auto js = json::parse(this->generic_get("groups?$filter=resourceProvisioningOptions/Any(x%3Ax%20eq%20'Team')"));
+std::map<std::string,teams::team> teams::client::getTeams() {   
+    teams::generic_returnType generic_return;
+    generic_return = this->generic_get("groups?$filter=resourceProvisioningOptions/Any(x%3Ax%20eq%20'Team')");
+    auto js = json::parse(generic_return.data);
     std::map<std::string,teams::team> teams_list;
     for(auto& e : js["value"]) {
         teams_list[e["id"]] = genTeam(e);
@@ -136,8 +151,9 @@ std::map<std::string,teams::team> teams::client::getTeams() {
 
 teams::team teams::client::getTeam(std::string id) {
     std::string url = "/groups/" + id;
-    std::string data = this->generic_get(url);
-    auto js = json::parse(data);
+    teams::generic_returnType generic_return;
+    generic_return = this->generic_get(url);
+    auto js = json::parse(generic_return.data);
     return genTeam(js);
 } 
 //ENDOF CLIENT FUNCTIONS
@@ -146,8 +162,9 @@ teams::team teams::client::getTeam(std::string id) {
 
 std::map<std::string,teams::team::channel> teams::team::getChannels() {
     std::string url = "/teams/" + this->id + "/channels";
-    std::string data = this->generic_get(url);
-    auto js = json::parse(data);
+    teams::generic_returnType generic_return;
+    generic_return = this->generic_get(url);
+    auto js = json::parse(generic_return.data);
     std::map<std::string,teams::team::channel> chan_list;
     for(auto& e : js["value"]) {
         chan_list[e["id"]] = genChannel(e,this);
@@ -157,26 +174,21 @@ std::map<std::string,teams::team::channel> teams::team::getChannels() {
 
 teams::team::channel teams::team::getChannel(std::string id) {
     std::string url = "/teams/" + this->id + "/channels/" + id;
-    std::string data = this->generic_get(url);
-    auto js = json::parse(data);
+    teams::generic_returnType generic_return;
+    generic_return = this->generic_get(url);
+    auto js = json::parse(generic_return.data);
     return genChannel(js,this);
 }
 
 
 //archives a team. Makes team read only but not gone
  void teams::team::archive(bool shouldSetSpoSiteReadOnlyForMembers) {
-    /* MIME */
-    curl_mime *mime;
-    mime = curl_mime_init(curl);
-    curl_mimepart *SSSROFM = curl_mime_addpart(mime);
-
-    /* FIELDS */
-   // curl_mime_data(SSSROFM, shouldSetSpoSiteReadOnlyForMembers, CURL_ZERO_TERMINATED);
-   // curl_mime_name(SSSROFM, "shouldSetSpoSiteReadOnlyForMembers");
-
-    std::string url = "/teams/" + id + "/archive";
-    std::string data = this->generic_post(url,mime);
-    std::cout << data << std::endl;
+    std::string url = "/teams/" + this->id + "/archive";
+    teams::generic_returnType generic_return;
+    generic_return = this->generic_post(url,"{\"shouldSetSpoSiteReadOnlyForMembers\":false}");
+    if(generic_return.http_code != 202) {
+        throw std::runtime_error("could not archive team");
+    }
  }
  //ENDOF TEAM FUNCTIONS
 
